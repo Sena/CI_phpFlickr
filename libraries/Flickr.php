@@ -9,14 +9,39 @@ class Flickr extends phpFlickr {
 
     public function __construct($api_key = self::FLICKR_API_KEY, $secret = self::FLICKR_API_SECRET, $die_on_error = false){
         parent::__construct($api_key, $secret, $die_on_error);
+    }
 
-        $ci =& get_instance();
+    public function enableCache ($type, $connection = NULL, $cache_expire = 600, $table = 'flickr_cache') {
+        switch ($type) {
 
-        if($ci->db->dbdriver == 'mysqli'
-            || $ci->db->dbdriver == 'mysql') {
-            $this->enableCache('db', 'mysql://' . $ci->db->username . ':' . $ci->db->password . '@' . $ci->db->hostname . '/' . $ci->db->database);
-        } else{
-            $this->enableCache('fs', dirname(__FILE__) . '/cache');
+            case 'fs':
+                if($connection === NULL) {
+                    $connection = APPPATH . 'cache';
+                }
+                if (is_dir($connection) === FALSE) {
+                    @mkdir ($connection, 0777);
+                }elseif ((string)fileperms($connection) != '0777') {
+                    chmod($connection, 0777);
+                }
+
+                if (is_dir($connection) === FALSE){//Needs to check if is 0777
+                    return FALSE;
+                }
+                break;
+
+            case 'db':
+                if($connection === NULL) {
+                    $ci =& get_instance();
+
+                    if($ci->db->dbdriver == 'mysqli'
+                        || $ci->db->dbdriver == 'mysql') {
+                        $this->enableCache('db', 'mysql://' . $ci->db->username . ':' . $ci->db->password . '@' . $ci->db->hostname . '/' . $ci->db->database);
+                    } else{
+                        return FALSE;
+                    }
+                }
+                break;
         }
+        parent::enableCache ($type, $connection, $cache_expire, $table);
     }
 }
